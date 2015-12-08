@@ -1,6 +1,8 @@
 streamcorpus-hadoop
 ===================
 
+[![build status](https://ci.osd.surfsara.nl/projects/6/status.png?ref=master)](https://ci.osd.surfsara.nl/projects/6?ref=master)
+
 Hadoop InputFormat for the streamcorpus format (used for the TREC KBA corpus). 
 
 Authors
