@@ -31,7 +31,9 @@ import java.io.IOException;
 public class StreamCorpusInputFormat extends FileInputFormat<Text, ThriftWritable<StreamItem>> {
     @Override
     public RecordReader<Text, ThriftWritable<StreamItem>> createRecordReader(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
-        return new StreamCorpusRecordReader();
+        StreamCorpusRecordReader reader = new StreamCorpusRecordReader();
+        reader.initialize(inputSplit, taskAttemptContext);
+        return reader;
     }
 
     @Override
