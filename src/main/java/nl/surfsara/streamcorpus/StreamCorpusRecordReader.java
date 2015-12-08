@@ -16,22 +16,22 @@
 
 package nl.surfsara.streamcorpus;
 
-import org.apache.hadoop.io.LongWritable;
+import com.twitter.elephantbird.mapreduce.io.ThriftWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import streamcorpus.StreamItem;
 
 import java.io.IOException;
 
-public class StreamCorpusRecordReader extends RecordReader<LongWritable,Text> {
+public class StreamCorpusRecordReader extends RecordReader<Text, ThriftWritable<StreamItem>> {
 
-    private LongWritable key;
-    private Text value;
+    private Text key;
+    private ThriftWritable<StreamItem> value;
 
     @Override
     public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
-
     }
 
     @Override
@@ -40,12 +40,12 @@ public class StreamCorpusRecordReader extends RecordReader<LongWritable,Text> {
     }
 
     @Override
-    public LongWritable getCurrentKey() throws IOException, InterruptedException {
+    public Text getCurrentKey() throws IOException, InterruptedException {
         return key;
     }
 
     @Override
-    public Text getCurrentValue() throws IOException, InterruptedException {
+    public ThriftWritable<StreamItem> getCurrentValue() throws IOException, InterruptedException {
         return value;
     }
 
