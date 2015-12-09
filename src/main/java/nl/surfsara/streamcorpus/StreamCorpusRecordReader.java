@@ -19,7 +19,6 @@ package nl.surfsara.streamcorpus;
 import com.twitter.elephantbird.mapreduce.io.ThriftWritable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -30,51 +29,54 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TIOStreamTransport;
+import org.apache.thrift.transport.TTransportException;
 import streamcorpus.StreamItem;
 
 import java.io.IOException;
 
 public class StreamCorpusRecordReader extends RecordReader<Text, ThriftWritable<StreamItem>> {
 
-    private FileSplit fileSplit;
+    private FileSplit split;
     private Configuration conf;
 
-    private TProtocol tProtocol;
+    private TProtocol tp;
 
+    private StreamItem item;
     private Text key;
     private ThriftWritable<StreamItem> value;
-    private StreamItem streamItem;
 
     @Override
     public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
-        fileSplit = (FileSplit) inputSplit;
+        split = (FileSplit) inputSplit;
         conf = taskAttemptContext.getConfiguration();
-
-        key = new Text();
-        value = new ThriftWritable<>();
-        streamItem = new StreamItem();
-
-        final Path file = fileSplit.getPath();
-        FileSystem fs = file.getFileSystem(conf);
-        TIOStreamTransport in = new TIOStreamTransport(fs.open(file));
-        tProtocol = new TBinaryProtocol.Factory().getProtocol(in);
+        final Path file = split.getPath();
+        FSDataInputStream in = file.getFileSystem(conf).open(file);
+        tp = new TBinaryProtocol.Factory().getProtocol(new TIOStreamTransport(in));
     }
 
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
-        key.set(fileSplit.getPath().toString());
-
+        if (key == null) {
+            key = new Text();
+        }
+        key.set(split.getPath().toString());
+        if (item == null) {
+            item = new StreamItem();
+        }
+        if (value == null) {
+            value = new ThriftWritable<>();
+        }
         try {
-            streamItem.read(tProtocol);
-            value.set(streamItem);
+            item.read(tp);
+            value.set(item);
         } catch (TException e) {
-            throw new IOException();
+            if (e instanceof TTransportException && ((TTransportException) e).getType() == TTransportException.END_OF_FILE) {
+                return false;
+            } else {
+                e.printStackTrace();
+                throw new IOException();
+            }
         }
-
-        if (streamItem == null) {
-            return false;
-        }
-
         return true;
     }
 
@@ -95,6 +97,8 @@ public class StreamCorpusRecordReader extends RecordReader<Text, ThriftWritable<
 
     @Override
     public void close() throws IOException {
-        tProtocol.getTransport().close();
+        if (tp != null && tp.getTransport() != null) {
+            tp.getTransport().close();
+        }
     }
 }
